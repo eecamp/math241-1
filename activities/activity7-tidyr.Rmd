@@ -1,6 +1,6 @@
 ---
 title: "More data Wrangling with tidyR"
-#author: "Insert Name"
+#author: "Emma Campbell"
 date: "Math 241, Week 4"
 output:
   pdf_document
@@ -36,11 +36,19 @@ for(l in libs){
 Consider the number of home runs hit (HR) and home runs allowed (HRA) for the Chicago Cubs (CHN) baseball team. Reshape the Teams data from the Lahman package into “long” format and plot a time series conditioned on whether the HRs that involved the Cubs were hit by them or allowed by them.
 
 ```{r, eval = F}
+view (Teams)
 
-Teams %>% 
+Teams <- Teams %>% 
   filter(teamID == "CHN") %>%
   select(yearID, HR, HRA) %>%
-  pivot_longer()
+  pivot_longer(c("HR", "HRA"), names_to = "hit_or_allowed", values_to = "HRs")
+  Teams <- Teams %>% mutate(hit_or_allowed = case_when(
+    hit_or_allowed == "HR" ~ "Hit by Cubs",
+    hit_or_allowed == "HRA" ~ "Hit Allowed by Cubs"
+  ))
+  
+ggplot(Teams, aes(x = yearID, y = HRs, color = hit_or_allowed))+
+  geom_point()
 ```
 
 
@@ -53,23 +61,36 @@ a. How many planes have a missing date of manufacture?
 library(nycflights13)
 planes2 <- select(planes, tailnum, year, manufacturer)
 flights2 <- select(flights, tailnum)
-nyc_flights <- left_join()
+nyc_flights <- left_join(planes2, flights2, by = c("tailnum" = "tailnum"))
+
+sum(is.na(nyc_flights$year))
 ```
 
 b. What are the five most common manufacturers?
 
 ```{r, eval = F}
-nyc_flights %>%
+nyc_flights %>% group_by(manufacturer) %>% summarize(sum = n()) %>% arrange(desc(sum)) %>% head(5)
 ```
 
 ## Problem 3 (Medium): 
+
 Use the `nycflights13` package and the `flights` and `planes` tables to answer the following questions:
 
 a. What is the oldest plane (specified by the `tailnum` variable) that flew from
 New York City airports in 2013?
+```{r}
+flights1 <- flights %>% rename(departureyear = year)
+planes1 <- planes %>% rename(manufactureyear = year)
+nyc_flightsfull <- left_join(planes1, flights1, by = c("tailnum" = "tailnum"))
+nyc_flightsfull %>% select(tailnum, manufactureyear, departureyear) %>% filter(departureyear == 2013) %>% arrange(manufactureyear) %>% head(1)
+```
+
 
 b. How many airplanes that flew from New York City are included in the
 planes table?
+```{r}
+planes %>% summarize(sum = n())
+```
 
 
 ## Problem 4 (Medium):
@@ -83,6 +104,14 @@ knitr::kable(
   mod,
   digits = c(0, 2, 2, 2, 4),
   caption = "Regression model from HELP clinical trial.",
+  longtable = TRUE
+)
+
+modpenguin <- broom::tidy(lm(body_mass_g ~ flipper_length_mm + sex, data = penguins))
+knitr::kable(
+  modpenguin,
+  digits = c(0, 2, 2, 2, 4),
+  caption = "Regression model from Palmer Penguins.",
   longtable = TRUE
 )
 ```
