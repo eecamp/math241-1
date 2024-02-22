@@ -25,6 +25,7 @@ Let’s load the packages we’ll be using in this activity.
 ```{r, echo = F}
 library(tidyverse)
 library(tidycensus)
+library(dplyr)
 ```
 
 
@@ -35,7 +36,7 @@ In order to directly download data from the Census API, you need a key. You can 
 Type your key in quotes using the `census_api_key()` command
 
 ```{r, eval = F}
-census_api_key("YOUR API KEY GOES HERE", install = TRUE)
+census_api_key("bb73885ab8f3be3c5698b5f0c877b59125018a44", install = TRUE)
 ```
 
 
@@ -128,7 +129,14 @@ or_county %>%
 We can create new variables using the `mutate()` function. For example, you can create a variable for the percentage of the population that is white for each county in Oregon, and map it.
 
 ```{r, eval = FALSE}
-
+or_county %>% mutate(perc_white = white_popE/total_popE) %>% 
+  st_as_sf() %>%
+  ggplot() +
+  geom_sf(aes(fill = perc_white)) +
+  scale_fill_viridis_c() +
+  labs(fill = "% of Population that is White") +
+  theme_void()
+  
 ```
 
 ## Census tracts
@@ -169,14 +177,34 @@ mutlnomah_tracts <- get_acs(geography = "tract",
 Look at the data to see if it contains only Multnomah county tracts.
 
 ```{r}
-
+glimpse(mutlnomah_tracts)
 ```
 
 
 ## Data Wrangling and Visualization
 
 Let's look at housing values `B25077_001`. Choose your county of birth (or any county you like) and all its adjacent counties. Create a visualization of the distribution of the median home values by census tract, for each county, using the most recent ACS data available (probably 2022).
+```{r}
+mplstracts <- get_acs(geography = "tract", 
+              year = 2022,
+              variables = c(housingvalues = "B25077_001"), 
+              state = "MN",
+              county = c("Hennepin", "Ramsey", "Dakota", "Anoka", "Carver"),
+              survey = "acs5",
+              output = "wide")
+mn_sf <- tracts(state = "MN", cb = TRUE)
+mn_county <- left_join(mplstracts, mn_sf, by = c("GEOID" = "GEOID"))
+glimpse(mn_county)
 
+mn_county %>% 
+  st_as_sf() %>%
+  ggplot() +
+  geom_sf(aes(fill = housingvaluesE)) +
+  scale_fill_viridis_c() +
+  labs(fill = "Median Home Values") +
+  theme_void()
+  
+```
 
 
 ## Next steps
